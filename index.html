@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Prediksi Bola ELITE</title>
+<style>
+body { font-family: Arial; background:#0f172a; color:#fff; padding:20px; }
+input, select { width:90px; margin:5px; }
+button { padding:10px; margin-top:15px; background:#22c55e; border:none; font-weight:bold; }
+.result { margin-top:20px; padding:15px; background:#1e293b; border-radius:8px; }
+</style>
+</head>
+<body>
+
+<h2>⚽ Prediksi Bola ELITE</h2>
+
+<h3>Mode:</h3>
+<select id="mode">
+<option value="0.05">Konservatif</option>
+<option value="0.1" selected>Normal</option>
+<option value="0.15">Agresif</option>
+</select>
+
+<h3>HOME TEAM</h3>
+GF Kandang <input id="h_gf_home"><br>
+GA Kandang <input id="h_ga_home"><br>
+GF Tandang <input id="h_gf_away"><br>
+GA Tandang <input id="h_ga_away"><br>
+
+<h3>AWAY TEAM</h3>
+GF Tandang <input id="a_gf_away"><br>
+GA Tandang <input id="a_ga_away"><br>
+GF Kandang <input id="a_gf_home"><br>
+GA Kandang <input id="a_ga_home"><br>
+
+<button onclick="hitung()">Hitung</button>
+
+<div class="result" id="output"></div>
+
+<script>
+function poisson(lambda){
+let L = Math.exp(-lambda);
+let p = 1.0;
+let k = 0;
+do{
+k++;
+p *= Math.random();
+} while(p > L);
+return k-1;
+}
+
+function hitung(){
+
+let mode = parseFloat(document.getElementById("mode").value);
+
+let h_gf_home = parseFloat(document.getElementById("h_gf_home").value);
+let h_ga_home = parseFloat(document.getElementById("h_ga_home").value);
+let h_gf_away = parseFloat(document.getElementById("h_gf_away").value);
+let h_ga_away = parseFloat(document.getElementById("h_ga_away").value);
+
+let a_gf_away = parseFloat(document.getElementById("a_gf_away").value);
+let a_ga_away = parseFloat(document.getElementById("a_ga_away").value);
+let a_gf_home = parseFloat(document.getElementById("a_gf_home").value);
+let a_ga_home = parseFloat(document.getElementById("a_ga_home").value);
+
+// Venue
+let homeVenue = (h_gf_home + a_ga_away) / 2;
+let awayVenue = (a_gf_away + h_ga_home) / 2;
+
+// Overall
+let h_overall_gf = (h_gf_home + h_gf_away) / 2;
+let h_overall_ga = (h_ga_home + h_ga_away) / 2;
+let a_overall_gf = (a_gf_home + a_gf_away) / 2;
+let a_overall_ga = (a_ga_home + a_ga_away) / 2;
+
+let homeOverall = (h_overall_gf + a_overall_ga) / 2;
+let awayOverall = (a_overall_gf + h_overall_ga) / 2;
+
+// Auto Bobot
+let selisih = (Math.abs(h_gf_home - h_gf_away) + Math.abs(h_ga_home - h_ga_away)) / 2;
+let bobotVenue = 0.5 + (selisih * mode);
+if(bobotVenue > 0.75) bobotVenue = 0.75;
+if(bobotVenue < 0.5) bobotVenue = 0.5;
+
+let bobotOverall = 1 - bobotVenue;
+
+let finalHome = (homeVenue * bobotVenue) + (homeOverall * bobotOverall);
+let finalAway = (awayVenue * bobotVenue) + (awayOverall * bobotOverall);
+
+let total = finalHome + finalAway;
+
+// Monte Carlo 500x
+let homeWin=0, draw=0, awayWin=0;
+for(let i=0;i<500;i++){
+let h = poisson(finalHome);
+let a = poisson(finalAway);
+if(h>a) homeWin++;
+else if(h==a) draw++;
+else awayWin++;
+}
+
+let hPerc = (homeWin/500*100).toFixed(1);
+let dPerc = (draw/500*100).toFixed(1);
+let aPerc = (awayWin/500*100).toFixed(1);
+
+let skorHome = Math.round(finalHome);
+let skorAway = Math.round(finalAway);
+
+let ou = total>2.7 ? "Over 2.5" : (total<2.2?"Under 2.5":"Borderline");
+let btts = (finalHome>0.8 && finalAway>0.8)?"BTTS YES":"BTTS NO";
+
+document.getElementById("output").innerHTML =
+"Home EG: "+finalHome.toFixed(2)+"<br>"+
+"Away EG: "+finalAway.toFixed(2)+"<br>"+
+"Total EG: "+total.toFixed(2)+"<br><br>"+
+"Prediksi Skor: "+skorHome+" - "+skorAway+"<br>"+
+"Over/Under: "+ou+"<br>"+
+"BTTS: "+btts+"<br><br>"+
+"Probabilitas:<br>"+
+"Home Win: "+hPerc+"%<br>"+
+"Draw: "+dPerc+"%<br>"+
+"Away Win: "+aPerc+"%<br>"+
+"Bobot Venue: "+(bobotVenue*100).toFixed(0)+"%";
+
+}
+</script>
+
+</body>
+</html>
