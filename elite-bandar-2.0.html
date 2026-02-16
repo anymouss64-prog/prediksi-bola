@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ELITE BANDAR 2.0</title>
+<style>
+body{background:#0f172a;color:white;font-family:Arial;text-align:center}
+input{padding:6px;margin:5px;width:90px}
+button{padding:10px 20px;background:#22c55e;border:none;font-weight:bold;cursor:pointer}
+.box{background:#1e293b;padding:20px;margin:20px auto;max-width:800px;border-radius:12px}
+.result{margin-top:20px;font-size:15px}
+</style>
+</head>
+<body>
+
+<h1>⚽ ELITE BANDAR 2.0</h1>
+
+<div class="box">
+
+<h3>Home Team</h3>
+GF Home: <input type="number" step="0.01" id="homeGF"><br>
+GA Home: <input type="number" step="0.01" id="homeGA"><br>
+
+<h3>Away Team</h3>
+GF Away: <input type="number" step="0.01" id="awayGF"><br>
+GA Away: <input type="number" step="0.01" id="awayGA"><br>
+
+<h3>League Average</h3>
+League Home: <input type="number" step="0.01" id="leagueHome" value="1.5"><br>
+League Away: <input type="number" step="0.01" id="leagueAway" value="1.3"><br>
+
+<h3>Market Odds (Optional)</h3>
+Over 2.5 Odds: <input type="number" step="0.01" id="oddsOver"><br>
+
+<br>
+<button onclick="calculate()">RUN MODEL</button>
+
+<div class="result" id="output"></div>
+
+</div>
+
+<script>
+
+function randomPoisson(lambda){
+let L=Math.exp(-lambda);
+let k=0,p=1;
+do{ k++; p*=Math.random(); }while(p>L);
+return k-1;
+}
+
+function calculate(){
+
+let homeGF=parseFloat(homeGF=document.getElementById("homeGF").value);
+let homeGA=parseFloat(homeGA=document.getElementById("homeGA").value);
+let awayGF=parseFloat(awayGF=document.getElementById("awayGF").value);
+let awayGA=parseFloat(awayGA=document.getElementById("awayGA").value);
+let leagueHome=parseFloat(leagueHome=document.getElementById("leagueHome").value);
+let leagueAway=parseFloat(leagueAway=document.getElementById("leagueAway").value);
+let oddsOver=parseFloat(document.getElementById("oddsOver").value);
+
+let attackHome=homeGF/leagueHome;
+let defenseHome=homeGA/leagueAway;
+let attackAway=awayGF/leagueAway;
+let defenseAway=awayGA/leagueHome;
+
+let homeAdv=1.05;
+
+let lambdaHome=leagueHome*attackHome*defenseAway*homeAdv;
+let lambdaAway=leagueAway*attackAway*defenseHome;
+
+let sim=10000;
+
+let over25=0,over275=0,over325=0;
+let btts=0;
+let homeWin=0,draw=0,awayWin=0;
+let scores={};
+
+for(let i=0;i<sim;i++){
+
+let h=randomPoisson(lambdaHome);
+let a=randomPoisson(lambdaAway);
+
+let total=h+a;
+
+if(total>=3) over25++;
+if(total>=3){ over275++; }
+if(total>=4) over325++;
+
+if(h>0 && a>0) btts++;
+
+if(h>a) homeWin++;
+else if(h==a) draw++;
+else awayWin++;
+
+let key=h+"-"+a;
+scores[key]=(scores[key]||0)+1;
+}
+
+// exact top 5
+let sortable=[];
+for(let s in scores){
+sortable.push([s,scores[s]]);
+}
+sortable.sort((a,b)=>b[1]-a[1]);
+
+let top5="";
+for(let i=0;i<5;i++){
+top5+=sortable[i][0]+" ("+((sortable[i][1]/sim)*100).toFixed(1)+"%)<br>";
+}
+
+let probOver25=over25/sim;
+let fairOver25=(1/probOver25).toFixed(2);
+
+let confidence="Low";
+if(probOver25>0.60) confidence="High";
+if(probOver25>0.70) confidence="Very High";
+
+let value="";
+if(oddsOver){
+let implied=1/oddsOver;
+let edge=(probOver25-implied)*100;
+value="Value Edge: "+edge.toFixed(2)+"%";
+}
+
+document.getElementById("output").innerHTML=`
+
+λ Home: ${lambdaHome.toFixed(2)}<br>
+λ Away: ${lambdaAway.toFixed(2)}<br>
+Total xG: ${(lambdaHome+lambdaAway).toFixed(2)}<br><br>
+
+Over 2.5: ${(probOver25*100).toFixed(1)}%<br>
+Over 3.25: ${(over325/sim*100).toFixed(1)}%<br>
+BTTS: ${(btts/sim*100).toFixed(1)}%<br><br>
+
+Home Win: ${(homeWin/sim*100).toFixed(1)}%<br>
+Draw: ${(draw/sim*100).toFixed(1)}%<br>
+Away Win: ${(awayWin/sim*100).toFixed(1)}%<br><br>
+
+Top 5 Exact Score:<br>
+${top5}<br>
+
+Fair Odds O2.5: ${fairOver25}<br>
+${value}<br>
+Confidence: ${confidence}
+
+`;
+}
+</script>
+
+</body>
+</html>
